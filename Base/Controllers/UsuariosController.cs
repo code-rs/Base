@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Base.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using AutoMapper;
 
 namespace Base.Controllers
 {
@@ -15,46 +13,44 @@ namespace Base.Controllers
     [ApiController]
     public class UsuariosController : ControllerBase
     {
-        private readonly BaseDbContext _context;
-
-        private readonly SignInManager<IdentityUser> _signInManager;
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly RoleManager<IdentityUser> _roleManager;
+        private readonly UserManager<Usuario> _userManager;
+        private readonly RoleManager<Rol> _roleManager;
         private readonly IConfiguration _configuration;
+        private readonly IMapper _mapper;
 
         public UsuariosController(
-            BaseDbContext context,
-            SignInManager<IdentityUser> signInManager,
-            UserManager<IdentityUser> userManager,
-            RoleManager<IdentityUser> roleManager,
-            IConfiguration configuration)
+            UserManager<Usuario> userManager,
+            RoleManager<Rol> roleManager,
+            IConfiguration configuration,
+            IMapper mapper)
         {
-            _context = context;
-
-            _signInManager = signInManager;
             _userManager = userManager;
             _roleManager = roleManager;
             _configuration = configuration;
+            _mapper = mapper;
 
-    }
+        }
 
-        // GET: api/Usuarios
+        // GET: /Usuarios
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Usuario>>> GetUsuario()
         {
             //return await _context.Usuario.ToListAsync();
-            
+
+            //var usuarios = await _userManager.Users.ToListAsync();
+
             var usuarios = await _userManager.Users.ToListAsync();
 
             return usuarios;
 
         }
 
-        // GET: api/Usuarios/5
+        // GET: /Usuarios/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Usuario>> GetUsuario(int id)
+        public async Task<ActionResult<Usuario>> GetUsuario(string id)
         {
-            var usuario = await _context.Usuario.FindAsync(id);
+            //var usuario = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == id);
+            var usuario = await _userManager.FindByIdAsync(id);
 
             if (usuario == null)
             {
@@ -64,65 +60,86 @@ namespace Base.Controllers
             return usuario;
         }
 
-        // PUT: api/Usuarios/5
+        // POST: /Usuarios
+        [HttpPost]
+        public async Task<ActionResult<Usuario>> PostUsuario(Usuario Usuario)
+        {
+            if (string.IsNullOrEmpty(Usuario.UserName)) Usuario.UserName = Usuario.Email;
+            //_context.Rol.Add(rol);
+            var resultado = await _userManager.CreateAsync(Usuario, Usuario.PasswordHash);
+
+            if (resultado.Succeeded)
+            {
+
+                return CreatedAtAction("GetUsuario", new { id = Usuario.Id }, Usuario);
+            } else
+            {
+
+                return BadRequest(resultado.Errors);
+            }
+
+            
+        }
+
+        // PUT: /Usuarios/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutUsuario(int id, Usuario usuario)
+        public async Task<IActionResult> PutRol(string id, UsuarioViewModel usuario)
         {
             if (id != usuario.Id)
             {
                 return BadRequest();
             }
 
-            _context.Entry(usuario).State = EntityState.Modified;
+            var actualizar = await _userManager.FindByIdAsync(id);
 
-            try
+            _mapper.Map(usuario, actualizar);
+
+            //Si tenemos nueva contraseña, la hasheamos y la añadimos
+            if(!string.IsNullOrEmpty(usuario.PasswordHash))
             {
-                await _context.SaveChangesAsync();
+                var passNueva = usuario.PasswordHash;
+                await _userManager.RemovePasswordAsync(actualizar);
+                await _userManager.AddPasswordAsync(actualizar, passNueva);
+
+            }            
+            
+            var resultado = await _userManager.UpdateAsync(actualizar);
+
+            if (resultado.Succeeded)
+            {
+                return CreatedAtAction("GetUsuario", new { id = usuario.Id }, usuario);
             }
-            catch (DbUpdateConcurrencyException)
+            else
             {
-                if (!UsuarioExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return BadRequest(resultado.Errors);
             }
 
-            return NoContent();
+            //return NoContent();
+            
         }
 
-        // POST: api/Usuarios
-        [HttpPost]
-        public async Task<ActionResult<Usuario>> PostUsuario(Usuario usuario)
-        {
-            _context.Usuario.Add(usuario);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetUsuario", new { id = usuario.Id }, usuario);
-        }
-
-        // DELETE: api/Usuarios/5
+        // DELETE: /Usuarios/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<Usuario>> DeleteUsuario(int id)
+        public async Task<ActionResult<Usuario>> DeleteUsuario(string id)
         {
-            var usuario = await _context.Usuario.FindAsync(id);
+            var usuario = await _userManager.FindByIdAsync(id);
             if (usuario == null)
             {
                 return NotFound();
             }
 
-            _context.Usuario.Remove(usuario);
-            await _context.SaveChangesAsync();
+            var resultado = await _userManager.DeleteAsync(usuario);
+
+            if (resultado.Succeeded)
+            {
+                //OK
+            }
+            else
+            {
+                //Log de error
+            }
 
             return usuario;
-        }
-
-        private bool UsuarioExists(int id)
-        {
-            return _context.Usuario.Any(e => e.Id == id);
         }
     }
 }

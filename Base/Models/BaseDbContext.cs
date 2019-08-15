@@ -4,7 +4,7 @@ using Base.Models;
 
 namespace Base.Models
 {
-    public class BaseDbContext : IdentityDbContext
+    public class BaseDbContext : IdentityDbContext<Usuario>
     {
 
         public BaseDbContext(DbContextOptions<BaseDbContext> options) : base(options)
@@ -12,6 +12,7 @@ namespace Base.Models
 
         }
 
-        public DbSet<Base.Models.Usuario> Usuario { get; set; }
+        public DbSet<Base.Models.Rol> Rol { get; set; }
+
     }
 }
