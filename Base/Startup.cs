@@ -63,7 +63,13 @@ namespace Base
 
             //Añadimos MVC
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
-            services.AddMvc();
+            services.AddMvc(options =>
+            {
+                options.RespectBrowserAcceptHeader = true; // false by default
+            });
+            services.AddMvc().AddXmlSerializerFormatters();
+            services.AddMvc().AddXmlDataContractSerializerFormatters();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

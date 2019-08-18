@@ -11,7 +11,8 @@ namespace Base.Mapping
     {
         public MapperProfile()
         {
-            CreateMap<UsuarioViewModel, Usuario>().ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null)); ;
+            CreateMap<UsuarioViewModel, Usuario>().ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+            CreateMap<RolViewModel, Rol>().ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
         }
     }
 }

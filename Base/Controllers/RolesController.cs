@@ -1,37 +1,45 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Base.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
+using AutoMapper;
 
 namespace Base.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     [ApiController]
     public class RolesController : ControllerBase
     {
-        private readonly BaseDbContext _context;
+        private readonly RoleManager<Rol> _roleManager;
+        private readonly IMapper _mapper;
 
-        public RolesController(BaseDbContext context)
+        public RolesController(
+            RoleManager<Rol> roleManager,
+            IMapper mapper)
         {
-            _context = context;
+            _roleManager = roleManager;
+            _mapper = mapper;
+
         }
 
         // GET: api/Roles
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Rol>>> GetRol()
         {
-            return await _context.Rol.ToListAsync();
+
+            var roles = await _roleManager.Roles.ToListAsync();
+
+            return roles;
         }
 
         // GET: api/Roles/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Rol>> GetRol(string id)
         {
-            var rol = await _context.Rol.FindAsync(id);
+            var rol = await _roleManager.FindByIdAsync(id);
 
             if (rol == null)
             {
@@ -50,56 +58,64 @@ namespace Base.Controllers
                 return BadRequest();
             }
 
-            _context.Entry(rol).State = EntityState.Modified;
+            var actualizar = await _roleManager.FindByIdAsync(id);
 
-            try
+            _mapper.Map(rol, actualizar);
+
+            var resultado = await _roleManager.UpdateAsync(actualizar);
+
+            if (resultado.Succeeded)
             {
-                await _context.SaveChangesAsync();
+                return CreatedAtAction("GetRol", new { id = rol.Id }, rol);
             }
-            catch (DbUpdateConcurrencyException)
+            else
             {
-                if (!RolExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return BadRequest(resultado.Errors);
             }
 
-            return NoContent();
+            //return NoContent();
         }
 
         // POST: api/Roles
         [HttpPost]
         public async Task<ActionResult<Rol>> PostRol(Rol rol)
         {
-            _context.Rol.Add(rol);
-            await _context.SaveChangesAsync();
+            var resultado = await _roleManager.CreateAsync(rol);
 
-            return CreatedAtAction("GetRol", new { id = rol.Id }, rol);
+            if (resultado.Succeeded)
+            {
+
+                return CreatedAtAction("GetRol", new { id = rol.Id }, rol);
+            }
+            else
+            {
+
+                return BadRequest(resultado.Errors);
+            }
         }
 
         // DELETE: api/Roles/5
         [HttpDelete("{id}")]
         public async Task<ActionResult<Rol>> DeleteRol(string id)
         {
-            var rol = await _context.Rol.FindAsync(id);
+            var rol = await _roleManager.FindByIdAsync(id);
             if (rol == null)
             {
                 return NotFound();
             }
 
-            _context.Rol.Remove(rol);
-            await _context.SaveChangesAsync();
+            var resultado = await _roleManager.DeleteAsync(rol);
 
-            return rol;
+            if (resultado.Succeeded)
+            {
+                return NoContent();
+            }
+            else
+            {
+                return BadRequest(resultado.Errors);
+            }
+
         }
 
-        private bool RolExists(string id)
-        {
-            return _context.Rol.Any(e => e.Id == id);
-        }
     }
 }

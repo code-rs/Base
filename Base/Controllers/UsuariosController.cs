@@ -62,16 +62,16 @@ namespace Base.Controllers
 
         // POST: /Usuarios
         [HttpPost]
-        public async Task<ActionResult<Usuario>> PostUsuario(Usuario Usuario)
+        public async Task<ActionResult<Usuario>> PostUsuario(Usuario usuario)
         {
-            if (string.IsNullOrEmpty(Usuario.UserName)) Usuario.UserName = Usuario.Email;
+            if (string.IsNullOrEmpty(usuario.UserName)) usuario.UserName = usuario.Email;
             //_context.Rol.Add(rol);
-            var resultado = await _userManager.CreateAsync(Usuario, Usuario.PasswordHash);
+            var resultado = await _userManager.CreateAsync(usuario, usuario.PasswordHash);
 
             if (resultado.Succeeded)
             {
 
-                return CreatedAtAction("GetUsuario", new { id = Usuario.Id }, Usuario);
+                return CreatedAtAction("GetUsuario", new { id = usuario.Id }, usuario);
             } else
             {
 
@@ -132,14 +132,13 @@ namespace Base.Controllers
 
             if (resultado.Succeeded)
             {
-                //OK
+                return NoContent();
             }
             else
             {
-                //Log de error
+                return BadRequest(resultado.Errors);
             }
 
-            return usuario;
         }
     }
 }
